@@ -149,3 +149,13 @@ class IrcClient(pydle.Client):
 
 		# Send the Halibot-friendly message to the Halibot base for module processing
 		self.agent.dispatch(msg)
+
+	# Pydle calls this when a message is received from a single user.
+	#  This is similar to on_channel_message above, except we aren't dealing with a channel
+	#  Therefore, the origin is the same as the author, which is the "by" field
+	@pydle.coroutine
+	def on_private_message(self, by, text):
+		org = self.agent.name + '/' + self.by
+		msg = Message(body=text, author=by, identity=self.identity(by), origin=org)
+
+		self.agent.dispatch(msg)

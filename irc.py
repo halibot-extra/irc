@@ -155,7 +155,7 @@ class IrcClient(pydle.Client):
 	#  Therefore, the origin is the same as the author, which is the "by" field
 	@pydle.coroutine
 	def on_private_message(self, by, text):
-		org = self.agent.name + '/' + self.by
+		org = self.agent.name + '/' + by
 		msg = Message(body=text, author=by, identity=self.identity(by), origin=org)
 
 		self.agent.dispatch(msg)

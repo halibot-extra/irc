@@ -2,7 +2,7 @@
 # Reference Halibot IRC Agent
 #  Connects to an IRC server and relays messages to and from the base
 #
-from halibot import HalAgent, HalConfigurer, Context, Message
+from halibot import HalAgent, HalConfigurer, Message
 from collections import OrderedDict
 import pydle, threading
 

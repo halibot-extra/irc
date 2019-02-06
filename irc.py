@@ -53,14 +53,7 @@ class IrcAgent(HalAgent):
 		# Give the client object a handle to talk back to this agent class
 		self.client.agent = self
 
-		self.client.connect(
-				hostname   = self.config['hostname'],
-				port       = self.config['port'],
-				tls        = self.config.get('tls', True),
-				tls_verify = self.config.get('tls-verify', False),
-		)
-
-		self._start_client()
+		self._start_client_thread()
 
 	# Implement the receive() function as defined in the HalModule class
 	#  This is called when the Halibot wants to send a message out using this agent.
@@ -70,17 +63,24 @@ class IrcAgent(HalAgent):
 	def receive(self, msg):
 		self.client.message(msg.whom(), msg.body)
 
-
 	def shutdown(self):
 		self.client.disconnect()
 		self.client.eventloop.stop()
 		self.thread.join()
 
+	def _run_client(self):
+		self.client.run(
+				hostname   = self.config['hostname'],
+				port       = self.config['port'],
+				tls        = self.config.get('tls', True),
+				tls_verify = self.config.get('tls-verify', False),
+		)
+
 	# Start the thread the IRC client will live in
 	#  This is so the client does not block on halibot's instantiation (main) thread,
 	#  thus causing to stop there and never finish starting up
-	def _start_client(self):
-		self.thread = threading.Thread(target=self.client.handle_forever)
+	def _start_client_thread(self):
+		self.thread = threading.Thread(target=self._run_client)
 		self.thread.start()
 
 	# NOTE: The Module() base class implements a send() function, do NOT override this.
@@ -105,28 +105,27 @@ class IrcClient(pydle.Client):
 	#  Sets the channel(s) to join from the agent's config.
 	#  NOTE: the config field is automatically populated from the relevant
 	#   config files when the module is loaded
-	def on_connect(self):
+	async def on_connect(self):
 		super().on_connect()
 
 		channel = self.agent.config['channel']
 		if isinstance(channel, str):
 			# Is a string, join that channel
-			self.join(channel)
+			await self.join(channel)
 		else:
 			# Persume a list of channels, join those
 			for c in channel:
-				self.join(c)
+				await self.join(c)
 
-	def on_quit(self, channel, user):
+	async def on_quit(self, channel, user):
 		# Invalidate the WHOIS cache entry
 		if user in self.whois_cache: self.whois_cache.pop(user)
 
-	def on_nick_change(self, old, new):
+	async def on_nick_change(self, old, new):
 		# Invalidate the WHOIS cache entries
 		if old in self.whois_cache: self.whois_cache.pop(old)
 		if new in self.whois_cache: self.whois_cache.pop(new)
 
-	@pydle.coroutine
 	def identity(self, nick):
 		# Do the WHOIS if the result is not cached
 		if not nick in self.whois_cache:
@@ -142,8 +141,7 @@ class IrcClient(pydle.Client):
 	# Pydle calls this when a message is received from the server
 	#  The purpose of this agent is to communicate with IRC,
 	#  so this repackages the message from Pydle into a Halibot-friendly message
-	@pydle.coroutine
-	def on_channel_message(self, target, by, text):
+	async def on_channel_message(self, target, by, text):
 		org = self.agent.name + '/' + target
 		msg = Message(body=text, author=by, identity=self.identity(by), origin=org)
 
@@ -153,8 +151,7 @@ class IrcClient(pydle.Client):
 	# Pydle calls this when a message is received from a single user.
 	#  This is similar to on_channel_message above, except we aren't dealing with a channel
 	#  Therefore, the origin is the same as the author, which is the "by" field
-	@pydle.coroutine
-	def on_private_message(self, by, text):
+	async def on_private_message(self, by, text):
 		org = self.agent.name + '/' + by
 		msg = Message(body=text, author=by, identity=self.identity(by), origin=org)
 

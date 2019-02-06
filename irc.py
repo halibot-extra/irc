@@ -4,7 +4,7 @@
 #
 from halibot import HalAgent, HalConfigurer, Message
 from collections import OrderedDict
-import pydle, threading
+import pydle, threading, asyncio
 
 # Haliot Reference IRC Agent
 #  Creates a Pydle IRC Client and connects to a server
@@ -61,7 +61,7 @@ class IrcAgent(HalAgent):
 	#  using the whom as the "channel", which is the tail end of the resource
 	#  identifier for this target (e.g. the "#foo" in "irc/#foo").
 	def receive(self, msg):
-		self.client.message(msg.whom(), msg.body)
+		asyncio.ensure_future(self.client.message(msg.whom(), msg.body), loop=self.eventloop)
 
 	def shutdown(self):
 		self.client.disconnect()
@@ -106,7 +106,7 @@ class IrcClient(pydle.Client):
 	#  NOTE: the config field is automatically populated from the relevant
 	#   config files when the module is loaded
 	async def on_connect(self):
-		super().on_connect()
+		await super().on_connect()
 
 		channel = self.agent.config['channel']
 		if isinstance(channel, str):

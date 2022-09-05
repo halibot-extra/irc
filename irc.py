@@ -64,9 +64,11 @@ class IrcAgent(HalAgent):
 		asyncio.ensure_future(self.client.message(msg.whom(), msg.body), loop=self.eventloop)
 
 	def shutdown(self):
-		self.client.disconnect()
-		self.client.eventloop.stop()
+		asyncio.run_coroutine_threadsafe(self.client.disconnect(), self.eventloop)
 		self.thread.join()
+		# Close this eventloop *after* the join, lets the disconnect() have time to finish
+		#  This may not even need to be called
+		self.client.eventloop.stop()
 
 	def _run_client(self):
 		self.client.run(

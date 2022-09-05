@@ -15,7 +15,7 @@ class IrcAgent(HalAgent):
 	class Configurer(HalConfigurer):
 		def configure(self):
 			self.optionString('nickname', prompt='Nickname', default='halibot')
-			self.optionString('hostname', prompt='Server hostname', default='irc.freenode.net')
+			self.optionString('hostname', prompt='Server hostname', default='irc.libera.chat')
 			self.optionInt('port', prompt='Server port', default=6697)
 			self.optionString('channel', prompt='Channel to join')
 

@@ -128,10 +128,10 @@ class IrcClient(pydle.Client):
 		if old in self.whois_cache: self.whois_cache.pop(old)
 		if new in self.whois_cache: self.whois_cache.pop(new)
 
-	def identity(self, nick):
+	async def identity(self, nick):
 		# Do the WHOIS if the result is not cached
 		if not nick in self.whois_cache:
-			self.whois_cache[nick] = yield self.whois(nick)
+			self.whois_cache[nick] = await self.whois(nick)
 
 		# If they are identified, return the account name
 		if self.whois_cache[nick]['identified']:
@@ -145,7 +145,7 @@ class IrcClient(pydle.Client):
 	#  so this repackages the message from Pydle into a Halibot-friendly message
 	async def on_channel_message(self, target, by, text):
 		org = self.agent.name + '/' + target
-		msg = Message(body=text, author=by, identity=self.identity(by), origin=org)
+		msg = Message(body=text, author=by, identity=await self.identity(by), origin=org)
 
 		# Send the Halibot-friendly message to the Halibot base for module processing
 		self.agent.dispatch(msg)
